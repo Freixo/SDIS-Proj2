@@ -9,6 +9,7 @@ import Card.*;
 import Client.*;
 import static Misc.Util.*;
 import java.util.ArrayList;
+import java.util.Random;
 import java.util.Scanner;
 
 /**
@@ -63,7 +64,7 @@ public class Game {
 
         System.out.println();
 
-        for (int i = 1; i < 4; ++i) {
+        for (int i = 1; i < players.size(); ++i) {
 
             boolean hasMainSuit = false;
             for (int c = 0; c < players.get(index % 4).getHand().size(); ++c) {
@@ -90,6 +91,7 @@ public class Game {
                     }
 
                     input = in.nextInt();
+                    
                 } while (!players.get(index % 4).getHand().get(input).getSuit().equals(mainSuit));
             } else {
                 System.out.println(players.get(index % 4).getName() + " play a card!");
@@ -199,10 +201,10 @@ public class Game {
 
         startingPlayer = (startingPlayer + 1) % 4;
         winningPlayer = startingPlayer;
-        
+
         for (int i = 0; i < players.size(); ++i) {
-            players.get(winningPlayer % 4).setHand(dealer.draw(10));
-            players.get(winningPlayer % 4).organize();
+            players.get((winningPlayer + i) % 4).setHand(dealer.draw(10));
+            players.get((winningPlayer + i) % 4).organize();
         }
 
     }
@@ -211,22 +213,22 @@ public class Game {
         System.out.println("Score: " + team1Games + " - " + team2Games);
         if (team1Games > team2Games) {
             System.out.println("Team 1 Won");
-        } else {
+        } else if (team2Games > team1Games) {
             System.out.println("Team 2 Won");
+        } else {
+            System.out.println("Draw!");
         }
     }
 
     public static void main(String[] args) {
         Begin();
-
-        while (team1Games < 4 || team2Games < 4) {
+        while (team1Games < 4 && team2Games < 4) {
             for (int i = 0; i < 10; ++i) {
                 Play();
                 Points();
             }
             EndTurn();
         }
-
         End();
     }
 
