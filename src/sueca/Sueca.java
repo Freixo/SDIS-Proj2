@@ -157,7 +157,7 @@ public class Sueca extends Application {
 
     @Override
     public void start(Stage primaryStage) {
-        primaryStage.setTitle("JavaFX Welcome");
+        primaryStage.setTitle("Sueca by Hugo Freixo");
 
         grid = new GridPane();
         grid.setAlignment(Pos.CENTER);

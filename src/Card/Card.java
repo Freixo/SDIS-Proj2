@@ -5,6 +5,8 @@
  */
 package Card;
 
+import java.util.Arrays;
+
 /**
  *
  * @author Hugo Freixo
@@ -14,6 +16,7 @@ public class Card implements Comparable<Card> {
     private int value;
     private int points;
     private String suit;
+    private static final String[] priority = {"Spades","Hearts","Clubs","Diamonds"};
 
     public Card() {
         value = 0;
@@ -70,7 +73,7 @@ public class Card implements Comparable<Card> {
                 return this.points - t.getPoints();
             }
         }
-        return t.getSuit().compareTo(this.suit);
+        return Arrays.asList(priority).indexOf(t.getSuit()) - Arrays.asList(priority).indexOf(this.suit);
     }
 
     public boolean beats(Card c, String trump) {
