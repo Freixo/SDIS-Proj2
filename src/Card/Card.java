@@ -15,6 +15,12 @@ public class Card implements Comparable<Card> {
     private int points;
     private String suit;
 
+    public Card() {
+        value = 0;
+        suit = "";
+        points = 0;
+    }
+
     public Card(int v, String s, int p) {
         value = v;
         suit = s;
@@ -69,6 +75,9 @@ public class Card implements Comparable<Card> {
 
     public boolean beats(Card c, String trump) {
         if (suit.equals(c.getSuit())) {
+            if (points == c.getPoints()) {
+                return value > c.getValue();
+            }
             return points > c.getPoints();
         } else if (suit.equals(trump)) {
             return true;
