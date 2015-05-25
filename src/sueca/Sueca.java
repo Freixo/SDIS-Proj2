@@ -35,6 +35,7 @@ public class Sueca extends Application {
     private Dealer dealer;
     private Player player = new Player("Player1", "Human");
     private ArrayList<Card> table = new ArrayList<Card>(4);
+    private boolean notEventCreated = true;
 
     public void Begin() {
         dealer = new Dealer(player);
@@ -56,41 +57,46 @@ public class Sueca extends Application {
     }
 
     public void ShowHand() {
-        if (!dealer.end()) {
-            int handSize = player.getHand().size();
-            for (int i = 1; i <= handSize; ++i) {
-                int wight = 13 - handSize / 2 + (i - 1);
-                ImageView img = GetImage(player.getHand().get(i - 1));
-                grid.add(img, wight, 20);
-                final int index = i;
+        player.setHand(dealer.getHand());
+        int handSize = player.getHand().size();
+        for (int i = 1; i <= handSize; ++i) {
+            int wight = 13 - handSize / 2 + (i - 1);
+            ImageView img = GetImage(player.getHand().get(i - 1));
+            grid.add(img, wight, 20);
+            final int index = i;
 
-                if (dealer.getTurn() == 0) {
-                    img.addEventHandler(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
-                        @Override
-                        public void handle(MouseEvent event) {
-                            if (dealer.play(index - 1)) {
-                                Update();
-                            }
-                            event.consume();
+            if (dealer.getTurn() == 0) {
+                img.addEventHandler(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
+                    @Override
+                    public void handle(MouseEvent event) {
+                        if (dealer.play(index - 1)) {
+                            Update();
                         }
-                    });
-                }
+                        event.consume();
+                    }
+                });
             }
-            if (dealer.fullTable()) {
-                Points();
+        }
+        if (dealer.fullTable()) {
+            Points();
+            if (notEventCreated) {
                 grid.addEventHandler(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
                     @Override
                     public void handle(MouseEvent event) {
-                        Update();
+                        if (!dealer.end()) {
+                            Update();
+                        } else {
+                            End();
+                        }
+                        event.consume();
                     }
+
                 });
-            } else if (dealer.getTurn() != 0) {
-                Play();
-                Update();
+                notEventCreated = false;
             }
-        } else {
-            Points();
-            End();
+        } else if (dealer.getTurn() != 0) {
+            Play();
+            Update();
         }
     }
 
@@ -99,24 +105,24 @@ public class Sueca extends Application {
     }
 
     private void showScore() {
+        score = new Text("Score\nTeam1: " + dealer.getTeam1Games() + "\nTeam2: " + dealer.getTeam2Games());
+        points = new Text("Team1: " + dealer.getTeam1Points() + "\nTeam2: " + dealer.getTeam2Points());
         grid.add(score, 0, 0);
         grid.add(trumpImage, 13, 0);
         grid.add(points, 26, 0);
     }
 
     private void Update() {
-        score = new Text("Score\nTeam1: " + dealer.getTeam1Games() + "\nTeam2: " + dealer.getTeam2Games());
-        points = new Text("Team1: " + dealer.getTeam1Points() + "\nTeam2: " + dealer.getTeam2Points());
-
-        player.setHand(dealer.getHand());
-        table = dealer.getTable();
         grid.getChildren().clear();
+
         showScore();
         ShowTable();
         ShowHand();
     }
 
     public void ShowTable() {
+        table = dealer.getTable();
+
         for (int i = 0; i < table.size(); ++i) {
             int heigth = 0, wight = 0, angle = 0;
             switch (i) {
@@ -166,7 +172,9 @@ public class Sueca extends Application {
         Scene scene = new Scene(grid, 1700, 700);
         primaryStage.setScene(scene);
         primaryStage.setFullScreen(true);
-        scene.getStylesheets().add(Sueca.class.getResource("Sueca.css").toExternalForm());
+        scene
+                .getStylesheets().add(Sueca.class
+                        .getResource("Sueca.css").toExternalForm());
         primaryStage.show();
     }
 
@@ -184,7 +192,6 @@ public class Sueca extends Application {
 
     private void End() {
         dealer.endTurn();
-        System.out.println(dealer.getDeck().size());
 
         dealer.shuffle();
 
@@ -195,8 +202,6 @@ public class Sueca extends Application {
         player.setHand(dealer.getHand());
 
         table = dealer.getTable();
-
-        Update();
     }
 
 }

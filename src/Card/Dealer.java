@@ -117,9 +117,7 @@ public class Dealer {
                 strong = table.get(i);
             }
         }
-
-        strong.print();
-
+        
         turn = table.indexOf(strong);
 
         int points = 0;
