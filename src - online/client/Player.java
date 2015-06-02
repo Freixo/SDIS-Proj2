@@ -8,7 +8,6 @@ package client;
 import java.util.ArrayList;
 import java.util.Collections;
 import org.json.JSONArray;
-import org.json.JSONObject;
 
 /**
  *
@@ -18,18 +17,15 @@ public class Player {
 
     private ArrayList<Card> hand = new ArrayList<Card>();
     private String name;
-    private String type;
 
-    public Player(ArrayList<Card> h, String n, String t) {
+    public Player(ArrayList<Card> h, String n) {
         hand = h;
         name = n;
-        type = t;
     }
 
-    public Player(String n, String t) {
+    public Player(String n) {
         hand = new ArrayList<Card>(10);
         name = n;
-        type = t;
     }
 
     public void organize() {
@@ -53,10 +49,6 @@ public class Player {
 
     public String getName() {
         return name;
-    }
-
-    public String getType() {
-        return type;
     }
 
 }
