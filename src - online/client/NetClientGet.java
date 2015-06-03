@@ -109,13 +109,11 @@ public class NetClientGet extends Application {
             final int index = i;
             System.out.println("Printing card " + (i - 1));
             if (turn == myTurn) {
-                au.cancel();
                 img.addEventHandler(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
                     @Override
                     public void handle(MouseEvent event) {
                         if (Play(index - 1)) {
                             System.out.println("Card Selected " + (index - 1));
-                            au.restart();
                         }
                         event.consume();
                     }
@@ -143,7 +141,7 @@ public class NetClientGet extends Application {
 
         setScore();
         setPoints();
-
+        setImage();
         grid.add(score, 0, 0);
         grid.add(playerNum, 13, 1);
         grid.add(trumpImage, 13, 0);
@@ -405,15 +403,17 @@ public class NetClientGet extends Application {
         Scene scene = new Scene(grid, 1700, 700);
         primaryStage.setScene(scene);
         //primaryStage.setFullScreen(true);
-        scene
-                .getStylesheets().add(NetClientGet.class
-                        .getResource("Sueca.css").toExternalForm());
+        scene.getStylesheets().add(NetClientGet.class.getResource("Sueca.css").toExternalForm());
         primaryStage.show();
     }
 
     public static void main(String[] args) {
         launch(args);
 
+    }
+
+    private void setImage() {
+        trumpImage = GetImage(new Card(state.getJSONObject("trump")));
     }
 }
 
@@ -424,6 +424,8 @@ class AutoUpdate extends Thread {
     boolean running;
     boolean updating;
 
+    long frameRate = 30;
+    
     AutoUpdate(NetClientGet ncg) {
         NGC = ncg;
         running = true;
@@ -443,7 +445,7 @@ class AutoUpdate extends Thread {
 
             });
             try {
-                Thread.sleep(1000);
+                Thread.sleep(frameRate);
             } catch (Exception e) {
 
             }
