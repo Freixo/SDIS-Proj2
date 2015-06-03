@@ -14,6 +14,8 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Random;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.event.EventHandler;
@@ -26,6 +28,7 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.GridPane;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
+import javafx.stage.WindowEvent;
 import org.json.*;
 
 /**
@@ -120,22 +123,10 @@ public class NetClientGet extends Application {
             }
         }
         if (fullTable()) {
-            au.cancel();
             System.out.println("full Table");
             Points();
-            if (notEventCreated) {
-                grid.addEventHandler(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
-                    @Override
-                    public void handle(MouseEvent event) {
-                        if (end()) {
-                            End();
-                        }
-                        au.restart();
-                        event.consume();
-                    }
-
-                });
-                notEventCreated = false;
+            if (end()) {
+                End();
             }
         } else if (turn != myTurn) {
             System.out.println("Not my turn");
@@ -152,10 +143,11 @@ public class NetClientGet extends Application {
 
         setScore();
         setPoints();
+
         grid.add(score, 0, 0);
         grid.add(playerNum, 13, 1);
         grid.add(trumpImage, 13, 0);
-        
+
         if (myTurn == getTurn()) {
             grid.add(isTurn, 13, 2);
         }
@@ -384,6 +376,22 @@ public class NetClientGet extends Application {
     public void start(Stage primaryStage) throws Exception {
         primaryStage.setTitle("Sueca by Hugo Freixo");
 
+        primaryStage.setOnCloseRequest(
+                new EventHandler<WindowEvent>() {
+                    @Override
+                    public void handle(WindowEvent event) {
+                        au.destroy();
+                        try {
+                            stop();
+
+                        } catch (Exception ex) {
+                            Logger.getLogger(NetClientGet.class
+                                    .getName()).log(Level.SEVERE, null, ex);
+                        }
+                    }
+                }
+        );
+
         grid = new GridPane();
         grid.setAlignment(Pos.CENTER);
         grid.setHgap(10);
@@ -397,12 +405,15 @@ public class NetClientGet extends Application {
         Scene scene = new Scene(grid, 1700, 700);
         primaryStage.setScene(scene);
         //primaryStage.setFullScreen(true);
-        scene.getStylesheets().add(NetClientGet.class.getResource("Sueca.css").toExternalForm());
+        scene
+                .getStylesheets().add(NetClientGet.class
+                        .getResource("Sueca.css").toExternalForm());
         primaryStage.show();
     }
 
     public static void main(String[] args) {
         launch(args);
+
     }
 }
 
