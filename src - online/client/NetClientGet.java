@@ -15,6 +15,7 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Random;
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -47,9 +48,11 @@ public class NetClientGet extends Application {
     private ArrayList<Card> table = new ArrayList<Card>(4);
     private boolean notEventCreated = true;
     private int myTurn;
+    private AutoUpdate au = new AutoUpdate(this);
+    private JSONObject state = new JSONObject();
 
     public void Begin() {
-        
+
         System.out.println(name);
         String output = POST("/sueca/start", player.getName());
 
@@ -57,11 +60,14 @@ public class NetClientGet extends Application {
 
         trumpImage = GetImage(new Card(json.getJSONObject("trumpCard")));
         myTurn = json.getInt("turn");
-        
+
         playerNum = new Text("You're Player" + (myTurn + 1));
 
-        //Atribuir IDs para o CSS
-        
+        playerNum.setId("text");
+        score.setId("text");
+        points.setId("text");
+        isTurn.setId("text");
+
         try {
             player.setHand(json.getJSONArray("hand"));
             setTable(json.getJSONArray("table"));
@@ -90,7 +96,7 @@ public class NetClientGet extends Application {
         int turn = getTurn();
 
         System.out.println(turn);
-        getHand();
+        setHand(state.getJSONArray("hand"));
         int handSize = player.getHand().size();
 
         for (int i = 1; i <= handSize; ++i) {
@@ -100,33 +106,31 @@ public class NetClientGet extends Application {
             final int index = i;
             System.out.println("Printing card " + (i - 1));
             if (turn == myTurn) {
+                au.cancel();
                 img.addEventHandler(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
                     @Override
                     public void handle(MouseEvent event) {
-                        System.out.println("Event created");
                         if (Play(index - 1)) {
                             System.out.println("Card Selected " + (index - 1));
-                            Update();
+                            au.restart();
                         }
                         event.consume();
                     }
                 });
-            } else {
-                System.out.println("No events");
             }
         }
         if (fullTable()) {
+            au.cancel();
             System.out.println("full Table");
             Points();
             if (notEventCreated) {
                 grid.addEventHandler(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
                     @Override
                     public void handle(MouseEvent event) {
-                        if (!end()) {
-                            Update();
-                        } else {
+                        if (end()) {
                             End();
                         }
+                        au.restart();
                         event.consume();
                     }
 
@@ -135,21 +139,6 @@ public class NetClientGet extends Application {
             }
         } else if (turn != myTurn) {
             System.out.println("Not my turn");
-            if (notEventCreated) {
-                grid.addEventHandler(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
-                    @Override
-                    public void handle(MouseEvent event) {
-                        if (!end()) {
-                            Update();
-                        } else {
-                            End();
-                        }
-                        event.consume();
-                    }
-
-                });
-                notEventCreated = false;
-            }
         }
     }
 
@@ -161,31 +150,21 @@ public class NetClientGet extends Application {
 
     private void showScore() {
 
-        setScore(getScore());
-        setPoints(getPoints());
+        setScore();
+        setPoints();
         grid.add(score, 0, 0);
-        grid.add(playerNum,13,1);
+        grid.add(playerNum, 13, 1);
         grid.add(trumpImage, 13, 0);
-        if(myTurn == getTurn())
-            grid.add(isTurn,13,2);
+        
+        if (myTurn == getTurn()) {
+            grid.add(isTurn, 13, 2);
+        }
         grid.add(points, 26, 0);
-    }
-
-    private JSONObject getScore() {
-        String output = POST("/sueca/getScore", player.getName());
-
-        return new JSONObject(output);
-    }
-
-    private JSONObject getPoints() {
-        String output = POST("/sueca/getPoints", player.getName());
-
-        return new JSONObject(output);
 
     }
 
     public void ShowTable() {
-        getTable();
+        setTable(state.getJSONArray("table"));
 
         for (int i = 0; i < table.size(); ++i) {
             int heigth = 0, wight = 0, angle = 0;
@@ -236,12 +215,16 @@ public class NetClientGet extends Application {
         }
     }
 
-    private void Update() {
-        grid.getChildren().clear();
+    public void Update() {
+        JSONObject json = new JSONObject(POST("/sueca/getState", player.getName()));
+        if (!json.equals(state)) {
+            grid.getChildren().clear();
 
-        showScore();
-        ShowTable();
-        ShowHand();
+            state = json;
+            showScore();
+            ShowTable();
+            ShowHand();
+        }
     }
 
     private void End() {
@@ -269,21 +252,6 @@ public class NetClientGet extends Application {
         }
     }
 
-    private void getTable() {
-        String output = POST("/sueca/getTable", player.getName());
-
-        //System.out.println(output);
-        setTable(new JSONArray(output));
-    }
-
-    private void getHand() {
-        String output = POST("/sueca/getHand", player.getName());
-
-        //System.out.println(output);
-        setHand(new JSONArray(output));
-
-    }
-
     private void setHand(JSONArray json) {
         player.getHand().clear();
         for (int i = 0; i < json.length(); ++i) {
@@ -292,12 +260,7 @@ public class NetClientGet extends Application {
     }
 
     private int getTurn() {
-        String output = POST("/sueca/getTurn", player.getName());
-
-        //System.out.println(output);
-        int turn = Integer.parseInt(output);
-
-        return turn;
+        return state.getInt("turn");
 
     }
 
@@ -323,15 +286,27 @@ public class NetClientGet extends Application {
         JSONObject json = new JSONObject(output);
 
         setTable(json.getJSONArray("table"));
-        setPoints(json);
+        setPoints();
     }
 
-    private void setPoints(JSONObject json) {
-        points = new Text("Team1: " + json.getInt("team1Points") + "\nTeam2: " + json.getInt("team2Points"));
+    private void setPoints() {
+        points = new Text("Team1: " + state.getInt("team1Points") + "\nTeam2: " + state.getInt("team2Points"));
+        points.setId("text");
     }
 
-    private void setScore(JSONObject json) {
-        score = new Text("Score\nTeam1: " + json.getInt("team1Games") + "\nTeam2: " + json.getInt("team2Games"));
+    private void setScore() {
+        score = new Text("Score\nTeam1: " + state.getInt("team1Games") + "\nTeam2: " + state.getInt("team2Games"));
+        score.setId("text");
+    }
+
+    private void register(String name, String password) {
+        String output = POST("/sueca/register", name + " " + password);
+        System.out.println(output);
+    }
+
+    private void login(String name, String password) {
+        String output = POST("/sueca/login", name + " " + password);
+        System.out.println(output);
     }
 
     private String POST(String route, String input) {
@@ -416,17 +391,63 @@ public class NetClientGet extends Application {
         grid.setPadding(new Insets(25, 25, 25, 25));
 
         Begin();
-
-        Update();
+        //login("Hugo", "12345");
+        au.start();
 
         Scene scene = new Scene(grid, 1700, 700);
         primaryStage.setScene(scene);
-        primaryStage.setFullScreen(true);
+        //primaryStage.setFullScreen(true);
         scene.getStylesheets().add(NetClientGet.class.getResource("Sueca.css").toExternalForm());
         primaryStage.show();
     }
 
     public static void main(String[] args) {
         launch(args);
+    }
+}
+
+class AutoUpdate extends Thread {
+
+    NetClientGet NGC;
+
+    boolean running;
+    boolean updating;
+
+    AutoUpdate(NetClientGet ncg) {
+        NGC = ncg;
+        running = true;
+        updating = true;
+    }
+
+    public void run() {
+        while (running) {
+            Platform.runLater(new Runnable() {
+
+                @Override
+                public void run() {
+                    if (updating) {
+                        NGC.Update();
+                    }
+                }
+
+            });
+            try {
+                Thread.sleep(1000);
+            } catch (Exception e) {
+
+            }
+        }
+    }
+
+    public void destroy() {
+        running = false;
+    }
+
+    public void cancel() {
+        updating = false;
+    }
+
+    public void restart() {
+        updating = true;
     }
 }
