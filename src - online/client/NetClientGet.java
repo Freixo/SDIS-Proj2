@@ -424,7 +424,7 @@ class AutoUpdate extends Thread {
     boolean running;
     boolean updating;
 
-    long frameRate = 30;
+    long frameRate = 300;
     
     AutoUpdate(NetClientGet ncg) {
         NGC = ncg;
