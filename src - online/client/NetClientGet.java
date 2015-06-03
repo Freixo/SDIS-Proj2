@@ -109,11 +109,13 @@ public class NetClientGet extends Application {
             final int index = i;
             System.out.println("Printing card " + (i - 1));
             if (turn == myTurn) {
+                au.cancel();
                 img.addEventHandler(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
                     @Override
                     public void handle(MouseEvent event) {
                         if (Play(index - 1)) {
                             System.out.println("Card Selected " + (index - 1));
+                            au.restart();
                         }
                         event.consume();
                     }
@@ -121,11 +123,23 @@ public class NetClientGet extends Application {
             }
         }
         if (fullTable()) {
+            au.cancel();
             System.out.println("full Table");
             Points();
             if (end()) {
                 End();
             }
+            if (notEventCreated) {
+                grid.addEventHandler(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
+                    @Override
+                    public void handle(MouseEvent event) {
+                        au.restart();
+                        event.consume();
+                    }
+                });
+                notEventCreated = false;
+            }
+
         } else if (turn != myTurn) {
             System.out.println("Not my turn");
         }
@@ -425,7 +439,7 @@ class AutoUpdate extends Thread {
     boolean updating;
 
     long frameRate = 300;
-    
+
     AutoUpdate(NetClientGet ncg) {
         NGC = ncg;
         running = true;
