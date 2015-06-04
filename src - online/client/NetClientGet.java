@@ -55,7 +55,7 @@ public class NetClientGet extends Application {
     private Text score = new Text("Score\nTeam1: 0\nTeam2: 0");
     private Text points = new Text("Team1: 0\nTeam2: 0");
     private Text playerNum = new Text("You're Player");
-    private Text isTurn = new Text("It's your turn!");
+    private Text message = new Text("Waiting for other Players...");
     private ImageView trumpImage;
 
     private Player player = new Player(name);
@@ -144,11 +144,8 @@ public class NetClientGet extends Application {
             public void handle(ActionEvent e) {
                 if (register(userTextFieldRegister.getText(), pwBoxRegister.getText())) {
                     textRegisterConfirm.setFill(Color.FIREBRICK);
-                    textRegisterConfirm.setText("Register Successful");
-                    textLoginConfirm.setText("Waiting for other Players...");
-                    name = userTextFieldLogin.getText();
-                    player = new Player(name);
-                    Begin();
+                    textRegisterConfirm.setText("Register Successful\n"
+                            + "Please Login");
                 } else {
                     textRegisterConfirm.setFill(Color.FIREBRICK);
                     textRegisterConfirm.setText("Register Failed! Try another Username");
@@ -168,33 +165,18 @@ public class NetClientGet extends Application {
         trumpImage = GetImage(new Card(json.getJSONObject("trumpCard")));
         myTurn = json.getInt("turn");
 
-        playerNum = new Text("You're Player" + (myTurn + 1));
+        playerNum = new Text("You're "+ name + "\nTeam " + (myTurn % 2 + 1));
 
         playerNum.setId("text");
         score.setId("text");
         points.setId("text");
-        isTurn.setId("text");
+        message.setId("text");
 
         try {
             player.setHand(json.getJSONArray("hand"));
             setTable(json.getJSONArray("table"));
             System.out.println(output);
         } catch (Exception e) {
-
-            String hand = "error";
-            do {
-                hand = POST("/sueca/getHand", player.getName());
-                System.out.println(hand);
-            } while (hand.startsWith("error"));
-
-            String table = "error";
-            do {
-                table = POST("/sueca/getTable", player.getName());
-                System.out.println(hand);
-            } while (table.startsWith("error"));
-
-            setHand(new JSONArray(hand));
-            setTable(new JSONArray(table));
 
         }
 
@@ -258,16 +240,18 @@ public class NetClientGet extends Application {
     }
 
     private void showScore() {
-
+        
         setScore();
         setPoints();
         setImage();
+        message = new Text(state.getString("message"));
         grid.add(score, 0, 0);
         grid.add(playerNum, 13, 1);
         grid.add(trumpImage, 13, 0);
 
         if (myTurn == getTurn()) {
-            grid.add(isTurn, 13, 2);
+            message = new Text("It's your turn");
+            grid.add(message, 13, 2);
         }
         grid.add(points, 26, 0);
 
@@ -326,15 +310,14 @@ public class NetClientGet extends Application {
     }
 
     public void Update() {
-        JSONObject json = new JSONObject(POST("/sueca/getState", player.getName()));
-        if (!json.equals(state)) {
-            grid.getChildren().clear();
+        state = new JSONObject(POST("/sueca/getState", player.getName()));
 
-            state = json;
-            showScore();
-            ShowTable();
-            ShowHand();
-        }
+        grid.getChildren().clear();
+
+        showScore();
+        ShowTable();
+        ShowHand();
+
     }
 
     private void End() {
@@ -502,6 +485,7 @@ public class NetClientGet extends Application {
                     @Override
                     public void handle(WindowEvent event) {
                         au.destroy();
+                        GET("/sueca/close");
                         try {
                             stop();
 
