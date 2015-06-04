@@ -18,14 +18,25 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javafx.application.Application;
 import javafx.application.Platform;
+import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
+import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.PasswordField;
+import javafx.scene.control.Separator;
+import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
+import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
@@ -38,7 +49,7 @@ import org.json.*;
 public class NetClientGet extends Application {
 
     private static final String path = "https://hidden-river-8597.herokuapp.com";
-    String name = "Hugo" + new Random().nextInt(10000);
+    String name = "";
 
     private GridPane grid = new GridPane();
     private Text score = new Text("Score\nTeam1: 0\nTeam2: 0");
@@ -53,6 +64,99 @@ public class NetClientGet extends Application {
     private int myTurn;
     private AutoUpdate au = new AutoUpdate(this);
     private JSONObject state = new JSONObject();
+
+    public void Start() {
+        final Text textLoginConfirm = new Text();
+        grid.add(textLoginConfirm, 1, 6);
+
+        Text scenetitleLogin = new Text("Login");
+        scenetitleLogin.setFont(Font.font("Tahoma", FontWeight.NORMAL, 20));
+        grid.add(scenetitleLogin, 0, 0, 2, 1);
+
+        Label userNameLogin = new Label("User Name:");
+        grid.add(userNameLogin, 0, 1);
+
+        TextField userTextFieldLogin = new TextField();
+        grid.add(userTextFieldLogin, 1, 1);
+
+        Label pwLogin = new Label("Password:");
+        grid.add(pwLogin, 0, 2);
+
+        PasswordField pwBoxLogin = new PasswordField();
+        grid.add(pwBoxLogin, 1, 2);
+
+        Button btnLogin = new Button("Login");
+        HBox hbBtn = new HBox(10);
+        hbBtn.setAlignment(Pos.BOTTOM_RIGHT);
+        hbBtn.getChildren().add(btnLogin);
+        grid.add(hbBtn, 1, 4);
+        btnLogin.setOnAction(new EventHandler<ActionEvent>() {
+
+            @Override
+            public void handle(ActionEvent e) {
+                if (login(userTextFieldLogin.getText(), pwBoxLogin.getText())) {
+                    textLoginConfirm.setFill(Color.FIREBRICK);
+                    textLoginConfirm.setText("Login Successful\n"
+                            + "Waiting for other Players...");
+                    name = userTextFieldLogin.getText();
+                    player = new Player(name);
+                    Begin();
+                } else {
+                    textLoginConfirm.setFill(Color.FIREBRICK);
+                    textLoginConfirm.setText("Login Failed");
+                }
+            }
+        });
+
+        Separator sep = new Separator();
+        sep.setOrientation(Orientation.VERTICAL);
+        GridPane.setConstraints(sep, 4, 0);
+        GridPane.setRowSpan(sep, 6);
+        grid.getChildren().add(sep);
+
+        final Text textRegisterConfirm = new Text();
+        grid.add(textRegisterConfirm, 7, 6);
+
+        Text scenetitleRegister = new Text("Register");
+        scenetitleRegister.setFont(Font.font("Tahoma", FontWeight.NORMAL, 20));
+        grid.add(scenetitleRegister, 6, 0, 2, 1);
+
+        Label userNameRegister = new Label("User Name:");
+        grid.add(userNameRegister, 6, 1);
+
+        TextField userTextFieldRegister = new TextField();
+        grid.add(userTextFieldRegister, 7, 1);
+
+        Label pwRegister = new Label("Password:");
+        grid.add(pwRegister, 6, 2);
+
+        PasswordField pwBoxRegister = new PasswordField();
+        grid.add(pwBoxRegister, 7, 2);
+
+        Button btnRegister = new Button("Register");
+        HBox hbBtnregister = new HBox(10);
+        hbBtnregister.setAlignment(Pos.BOTTOM_RIGHT);
+        hbBtnregister.getChildren().add(btnRegister);
+        grid.add(hbBtnregister, 7, 4);
+        btnRegister.setOnAction(new EventHandler<ActionEvent>() {
+
+            @Override
+            public void handle(ActionEvent e) {
+                if (register(userTextFieldRegister.getText(), pwBoxRegister.getText())) {
+                    textRegisterConfirm.setFill(Color.FIREBRICK);
+                    textRegisterConfirm.setText("Register Successful");
+                    textLoginConfirm.setText("Waiting for other Players...");
+                    name = userTextFieldLogin.getText();
+                    player = new Player(name);
+                    Begin();
+                } else {
+                    textRegisterConfirm.setFill(Color.FIREBRICK);
+                    textRegisterConfirm.setText("Register Failed! Try another Username");
+                }
+
+            }
+        });
+    }
 
     public void Begin() {
 
@@ -93,6 +197,8 @@ public class NetClientGet extends Application {
             setTable(new JSONArray(table));
 
         }
+
+        au.start();
     }
 
     public void ShowHand() {
@@ -264,6 +370,9 @@ public class NetClientGet extends Application {
     }
 
     private int getTurn() {
+        if (fullTable()) {
+            return -1;
+        }
         return state.getInt("turn");
 
     }
@@ -303,14 +412,15 @@ public class NetClientGet extends Application {
         score.setId("text");
     }
 
-    private void register(String name, String password) {
+    private boolean register(String name, String password) {
         String output = POST("/sueca/register", name + " " + password);
         System.out.println(output);
+        return !output.startsWith("ERROR");
     }
 
-    private void login(String name, String password) {
+    private boolean login(String name, String password) {
         String output = POST("/sueca/login", name + " " + password);
-        System.out.println(output);
+        return output.equals("1");
     }
 
     private String POST(String route, String input) {
@@ -326,8 +436,7 @@ public class NetClientGet extends Application {
             os.flush();
 
             if (conn.getResponseCode() != HttpURLConnection.HTTP_CREATED) {
-                throw new RuntimeException("Failed : HTTP error code : "
-                        + conn.getResponseCode());
+                throw new RuntimeException("Failed : HTTP error code : " + conn.getResponseCode());
             }
 
             BufferedReader br = new BufferedReader(new InputStreamReader((conn.getInputStream())));
@@ -410,13 +519,11 @@ public class NetClientGet extends Application {
         grid.setVgap(10);
         grid.setPadding(new Insets(25, 25, 25, 25));
 
-        Begin();
-        //login("Hugo", "12345");
-        au.start();
+        Start();
 
         Scene scene = new Scene(grid, 1700, 700);
         primaryStage.setScene(scene);
-        //primaryStage.setFullScreen(true);
+        primaryStage.setFullScreen(true);
         scene.getStylesheets().add(NetClientGet.class.getResource("Sueca.css").toExternalForm());
         primaryStage.show();
     }
