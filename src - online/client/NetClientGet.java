@@ -165,7 +165,7 @@ public class NetClientGet extends Application {
         trumpImage = GetImage(new Card(json.getJSONObject("trumpCard")));
         myTurn = json.getInt("turn");
 
-        playerNum = new Text("You're "+ name + "\nTeam " + (myTurn % 2 + 1));
+        playerNum = new Text("You're " + name + "\nTeam " + (myTurn % 2 + 1));
 
         playerNum.setId("text");
         score.setId("text");
@@ -240,19 +240,19 @@ public class NetClientGet extends Application {
     }
 
     private void showScore() {
-        
+
         setScore();
         setPoints();
         setImage();
-        message = new Text(state.getString("message"));
+        setMessage();
         grid.add(score, 0, 0);
         grid.add(playerNum, 13, 1);
         grid.add(trumpImage, 13, 0);
 
         if (myTurn == getTurn()) {
             message = new Text("It's your turn");
-            grid.add(message, 13, 2);
         }
+        grid.add(message, 13, 2);
         grid.add(points, 26, 0);
 
     }
@@ -311,12 +311,17 @@ public class NetClientGet extends Application {
 
     public void Update() {
         state = new JSONObject(POST("/sueca/getState", player.getName()));
+        if (state.has("hand") && state.getJSONArray("hand").length() != 0) {
+            grid.getChildren().clear();
 
-        grid.getChildren().clear();
-
-        showScore();
-        ShowTable();
-        ShowHand();
+            showScore();
+            ShowTable();
+            ShowHand();
+        } else {
+            grid.getChildren().clear();
+            setMessage();
+            grid.add(message, 13, 2);
+        }
 
     }
 
@@ -393,6 +398,11 @@ public class NetClientGet extends Application {
     private void setScore() {
         score = new Text("Score\nTeam1: " + state.getInt("team1Games") + "\nTeam2: " + state.getInt("team2Games"));
         score.setId("text");
+    }
+    
+    private void setMessage() {
+        message = new Text(state.getString("message"));
+        message.setId("text");
     }
 
     private boolean register(String name, String password) {
@@ -485,7 +495,7 @@ public class NetClientGet extends Application {
                     @Override
                     public void handle(WindowEvent event) {
                         au.destroy();
-                        GET("/sueca/close");
+                        POST("/sueca/close", name);
                         try {
                             stop();
 
