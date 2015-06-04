@@ -13,7 +13,6 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javafx.application.Application;
@@ -94,16 +93,17 @@ public class NetClientGet extends Application {
 
             @Override
             public void handle(ActionEvent e) {
-                if (login(userTextFieldLogin.getText(), pwBoxLogin.getText())) {
-                    textLoginConfirm.setFill(Color.FIREBRICK);
-                    textLoginConfirm.setText("Login Successful\n"
-                            + "Waiting for other Players...");
-                    name = userTextFieldLogin.getText();
-                    player = new Player(name);
-                    Begin();
-                } else {
-                    textLoginConfirm.setFill(Color.FIREBRICK);
-                    textLoginConfirm.setText("Login Failed");
+                if (!userTextFieldLogin.getText().isEmpty() && !pwBoxLogin.getText().isEmpty()) {
+                    if (login(userTextFieldLogin.getText(), pwBoxLogin.getText())) {
+                        textLoginConfirm.setFill(Color.FIREBRICK);
+                        textLoginConfirm.setText("Login Successful");
+                        name = userTextFieldLogin.getText();
+                        player = new Player(name);
+                        Begin();
+                    } else {
+                        textLoginConfirm.setFill(Color.FIREBRICK);
+                        textLoginConfirm.setText("Login Failed");
+                    }
                 }
             }
         });
@@ -142,13 +142,15 @@ public class NetClientGet extends Application {
 
             @Override
             public void handle(ActionEvent e) {
-                if (register(userTextFieldRegister.getText(), pwBoxRegister.getText())) {
-                    textRegisterConfirm.setFill(Color.FIREBRICK);
-                    textRegisterConfirm.setText("Register Successful\n"
-                            + "Please Login");
-                } else {
-                    textRegisterConfirm.setFill(Color.FIREBRICK);
-                    textRegisterConfirm.setText("Register Failed! Try another Username");
+                if (!userTextFieldRegister.getText().isEmpty() && !pwBoxRegister.getText().isEmpty()) {
+                    if (register(userTextFieldRegister.getText(), pwBoxRegister.getText())) {
+                        textRegisterConfirm.setFill(Color.FIREBRICK);
+                        textRegisterConfirm.setText("Register Successful\n"
+                                + "Please Login");
+                    } else {
+                        textRegisterConfirm.setFill(Color.FIREBRICK);
+                        textRegisterConfirm.setText("Register Failed! Try another Username");
+                    }
                 }
 
             }
@@ -156,8 +158,7 @@ public class NetClientGet extends Application {
     }
 
     public void Begin() {
-
-        System.out.println(name);
+        //System.out.println(name);
         String output = POST("/sueca/start", player.getName());
 
         JSONObject json = new JSONObject(output);
@@ -175,7 +176,7 @@ public class NetClientGet extends Application {
         try {
             player.setHand(json.getJSONArray("hand"));
             setTable(json.getJSONArray("table"));
-            System.out.println(output);
+            //System.out.println(output);
         } catch (Exception e) {
 
         }
@@ -186,7 +187,7 @@ public class NetClientGet extends Application {
     public void ShowHand() {
         int turn = getTurn();
 
-        System.out.println(turn);
+        //System.out.println(turn);
         setHand(state.getJSONArray("hand"));
         int handSize = player.getHand().size();
 
@@ -195,14 +196,14 @@ public class NetClientGet extends Application {
             ImageView img = GetImage(player.getHand().get(i - 1));
             grid.add(img, wight, 20);
             final int index = i;
-            System.out.println("Printing card " + (i - 1));
+            // System.out.println("Printing card " + (i - 1));
             if (turn == myTurn) {
                 au.cancel();
                 img.addEventHandler(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
                     @Override
                     public void handle(MouseEvent event) {
                         if (Play(index - 1)) {
-                            System.out.println("Card Selected " + (index - 1));
+                            // System.out.println("Card Selected " + (index - 1));
                             au.restart();
                         }
                         event.consume();
@@ -212,7 +213,13 @@ public class NetClientGet extends Application {
         }
         if (fullTable()) {
             au.cancel();
-            System.out.println("full Table");
+
+            if (grid.getChildren().remove(message)) {
+                message = new Text("Click to continue!");
+                message.setId("text");
+                grid.add(message, 26, 1);
+            }
+            // System.out.println("full Table");
             Points();
             if (end()) {
                 End();
@@ -228,8 +235,6 @@ public class NetClientGet extends Application {
                 notEventCreated = false;
             }
 
-        } else if (turn != myTurn) {
-            System.out.println("Not my turn");
         }
     }
 
@@ -245,14 +250,17 @@ public class NetClientGet extends Application {
         setPoints();
         setImage();
         setMessage();
+
         grid.add(score, 0, 0);
-        grid.add(playerNum, 13, 1);
+        grid.add(playerNum, 0, 2);
         grid.add(trumpImage, 13, 0);
 
         if (myTurn == getTurn()) {
             message = new Text("It's your turn");
+            message.setId("text");
         }
-        grid.add(message, 13, 2);
+
+        grid.add(message, 26, 1);
         grid.add(points, 26, 0);
 
     }
@@ -311,23 +319,22 @@ public class NetClientGet extends Application {
 
     public void Update() {
         state = new JSONObject(POST("/sueca/getState", player.getName()));
-        if (state.has("hand") && state.getJSONArray("hand").length() != 0) {
-            grid.getChildren().clear();
 
+        //System.out.println(state);
+        grid.getChildren().clear();
+        if (state.has("hand")) {
             showScore();
             ShowTable();
             ShowHand();
         } else {
-            grid.getChildren().clear();
             setMessage();
             grid.add(message, 13, 2);
         }
-
     }
 
     private void End() {
         String output = POST("/sueca/end", player.getName());
-        System.out.println("END: " + output);
+        // System.out.println("END: " + output);
 
         JSONObject json = new JSONObject(output);
 
@@ -343,7 +350,6 @@ public class NetClientGet extends Application {
     }
 
     private void setTable(JSONArray json) {
-
         table.clear();
         for (int i = 0; i < json.length(); ++i) {
             table.add(new Card(json.optJSONObject(i)));
@@ -362,7 +368,6 @@ public class NetClientGet extends Application {
             return -1;
         }
         return state.getInt("turn");
-
     }
 
     private boolean Play(int index) {
@@ -399,15 +404,16 @@ public class NetClientGet extends Application {
         score = new Text("Score\nTeam1: " + state.getInt("team1Games") + "\nTeam2: " + state.getInt("team2Games"));
         score.setId("text");
     }
-    
+
     private void setMessage() {
+        //System.out.println(state.getString("message"));
         message = new Text(state.getString("message"));
         message.setId("text");
     }
 
     private boolean register(String name, String password) {
         String output = POST("/sueca/register", name + " " + password);
-        System.out.println(output);
+        //System.out.println(output);
         return !output.startsWith("ERROR");
     }
 
